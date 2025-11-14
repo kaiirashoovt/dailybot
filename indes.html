@@ -1,0 +1,246 @@
+{{$current_block:= .}}
+<style>
+
+    .tree{
+        --spacing : 1.5rem;
+        --radius  : 10px;
+        padding-left: 0;
+        margin-bottom: 10px
+    }
+    
+    .tree li{
+        display      : block;
+        position     : relative;
+        padding-left : calc(2 * var(--spacing) - var(--radius) - 2px);
+    }
+    
+    .tree ul{
+        margin-left  : calc(var(--radius) - var(--spacing));
+        padding-left : 0;
+    }
+    
+    .tree ul li{
+        border-left : 2px solid #ddd;
+    }
+    
+    .tree ul li:last-child{
+        border-color : transparent;
+    }
+    
+    .tree ul li::before{
+        content      : '';
+        display      : block;
+        position     : absolute;
+        top          : calc(var(--spacing) / -2);
+        left         : -2px;
+        width        : calc(var(--spacing) + 2px);
+        height       : calc(var(--spacing) + 1px);
+        border       : solid #ddd;
+        border-width : 0 0 2px 2px;
+    }
+    
+    .tree summary{
+        display : block;
+        cursor  : pointer;
+    }
+    
+    .tree summary::marker,
+    .tree summary::-webkit-details-marker{
+        display : none;
+    }
+    
+    .tree summary:focus{
+        outline : none;
+    }
+    
+    .tree summary:focus-visible{
+        outline : 1px dotted #000;
+    }
+    
+    .tree li::after,
+    .tree summary::before{
+        content       : '\2713';
+        display       : block;
+        text-align    : center; 
+        line-height   : calc(2 * var(--radius) - 2px);
+        position      : absolute;
+        top           : calc(var(--spacing) / 2 - var(--radius));
+        left          : calc(var(--spacing) - var(--radius) - 1px);
+        width         : calc(2 * var(--radius));
+        height        : calc(2 * var(--radius));
+        border-radius : 50%;
+        background    : #ddd;
+    }
+    
+    .tree summary::before{
+        content     : '+';
+        z-index     : 1;
+        background  : #696;
+        color       : #fff;
+        line-height : calc(2 * var(--radius) - 2px);
+        text-align  : center;
+    }
+    
+    .tree details[open] > summary::before{
+        content : '−';
+    }
+    
+</style>
+
+<div class="card" *ngIf="infos">
+
+    <div class="card-header bg-white">
+                <h5 translate="Ход исполнения"></h5>
+            </div>
+    
+    <div class="card-body" style="position: relative">
+        
+        <div>
+            <p-treeTable [value]="executionProgressItems">
+                <ng-template pTemplate="header">
+                    <tr style="padding:0px;font-size:10pt;" >
+                        <th style="text-align: center" width="30%"><span translate="Исполнитель"></span></th>
+                        <th style="text-align: center" width="10%"><span translate="Дата"></span></th>
+                        <th style="text-align: center" width="20%"><span translate="Тип задачи, номер задачи"></span></th>                            
+                        <th style="text-align: center" width="10%"><span translate="Статус задачи"></span></th>
+                        <th style="text-align: center" width="25%"><span translate="Действия"></span></th>
+                        <th style="text-align: center" width="25%"><span translate="Комментарий"></span></th>
+                        <th style="text-align: center" width="5%"></th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-rowNode let-rowData="rowData">
+                    <tr style="padding:0px;font-size:.75rem" [ttRow]="rowNode" 
+                        [ngStyle]="{'background-color': (rowData.version_num == 0 && rowData.is_closed != '1' && !rowData.version_url) ? 'rgba(174, 221, 160, 0.333)' : '',
+                                    'color': (rowData.version_num == 0 && rowData.is_closed != '1' && !rowData.version_url) ? '#F91354' : '',
+                                    'font-weight': (rowData.version_num == 0 && rowData.is_closed != '1' && !rowData.version_url) ? '700' : ''}">
+                        <td style="padding:0px; position: relative;">
+                            <div class="d-flex align-items-center">
+                                <div *ngFor="let node of [].constructor(rowNode.level); let level = index"
+                                    [class]="'node level-' + level"
+                                    [ngClass]="{ 
+                                        'children': !!rowNode.node?.children.length && rowNode.node?.expanded, 
+                                        'last': rowNode.level == level + 1 && rowNode.node?.parent?.children.length - 1 == rowNode.node.index
+                                    }"
+                                    [ngStyle]="{ 'left': 'calc(' + (level + 1) + 'rem - 2px)', }"
+                                >
+                                    <div *ngIf="rowNode.level == level + 1" class="leaf">&nbsp;</div>
+                                    <!--<button (click)="log(rowNode.index)">1</button>-->
+                                </div>
+                                <!--<div class="col-md-2">-->
+                                    <p-treeTableToggler [rowNode]="rowNode"></p-treeTableToggler>
+                                <!--</div>-->
+                                <!--<div class="col-md-10">-->
+                                    <a *ngIf="!rowData.alternate" [style]="{color:rowData.is_responsible == 1?'red':''}">{[{rowData.manager_title}} <i *ngIf="rowData.manager_jobtitle">({[{rowData.manager_jobtitle}})</i></a>
+                                    <a *ngIf="rowData.alternate" [style]="{color:rowData.is_responsible == 1?'red':''}">{[{rowData.alternate}} и.о. {[{rowData.manager_title}} <i *ngIf="rowData.manager_jobtitle">({[{rowData.manager_jobtitle}})</i></a>
+                                    <!--<a *ngIf="session_roles.admin" (click)="loginAs(task.value.manager_id)"><span class="material-icons">login</span></a>-->
+                                    <a *ngIf="rowData.version_url && rowData.id<0" [href]="rowData.version_url">&nbsp;<span translate="Просмотр версии"></span></a>
+                                    <a *ngIf="rowData.version_url  && rowData.id>=0" [href]="rowData.version_url">&nbsp;<span translate="Просмотр текущей версии"></span></a>
+                                <!--</div> -->
+                            </div>
+                        </td>
+                        <td>
+                            {[{rowData.created_at}}
+                        </td>
+                        <td>
+                            <span [translate]="rowData.task_type_title"></span>
+                            <a class="ms-1" *ngIf="rowData.id>0 && session_roles && session_roles.admin" [href]="'tasksdetails/'+rowData.id"><span translate="Изменить"></span>, # {[{ rowData.id }}</a>
+                        </td>                            
+                        <td>
+                             <!--[style]="{backgroundColor:rowData.status_color}"-->
+                             <span [translate]="rowData.status_title"></span>
+                             <!--<span [translate]="rowData.approve_res_id$title"></span>-->
+                            
+                        </td>
+                        <td>
+                            <div *ngFor="let h of rowData.hst">
+                                <span translate="Дата:" *ngIf="rowData.read_at2"></span> <span *ngIf="rowData.read_at2">{[{rowData.read_at2}}, Прочитано </span><br>
+                                <span translate="Дата:"></span> {[{moment(h.created_at).format(session_parameters.longDateTimeFormat)}}
+                                <br/>
+                                <span *ngIf="h.is_resolve != '1'" translate="Действие:"></span> <span [translate]="h.action_txt"></span>
+                                <br/>
+                                
+                                <div *ngIf="h.file_id$code">
+                                   <strong translate="Файл:"></strong> 
+                                    <a class="btn btn-primary" [href]="'restapi/getfile?code='+h.file_id$code+'&attachment=true'">
+                                        <i class="fa fa-file-pdf-o"></i>
+                                        {[{h.file_id$}}
+                                    </a>
+                                </div>
+                                
+                                
+                                <div class="flex"  *ngIf="h.files?.length">
+                                    <div *ngFor="let file of h.files">
+                                        <strong translate="Файл:"></strong> 
+                                        <a class="btn btn-primary" [href]="'restapi/getfile?code='+file.code+'&attachment=true'">
+                                            <i class="fa fa-file-pdf-o"></i>
+                                            {[{file.filename}}
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div *ngFor="let h of rowData.hst">
+                                <span *ngIf="h.txt && h.is_resolve != '1'"><span translate> Комментарий: </span> {[{ h.txt }}</span> 
+                                <span *ngIf="h.txt && h.is_resolve == '1'"><span translate> Поручение: </span>{[{ h.txt }}</span> 
+                            </div>
+                        </td>
+                        <td>
+                            <div
+                                *ngIf="rowData.id>0"
+                                ngbDropdown 
+                                class="ms-2"
+                            >
+                                <p-button  *ngIf="(session_roles.admin || sessioninfo.bp_process_roles_list.task_run_as)" ngbDropdownToggle icon="dm dm-more-vertical" styleClass="p-button-secondary"></p-button>
+                                <div ngbDropdownMenu>
+                                    <a ngbDropdownItem href="javascript:void(0);"
+                                        *ngIf="sessioninfo.bp_process_roles_list && sessioninfo.bp_process_roles_list.task_set_responsible"
+                                        (click)="appComponent.bpRun('task_set_responsible',{'id': rowData.id },bindCallBack)"
+                                        class="p-2 m-0  border-dark d-block text-dark"
+                                    >
+                                        <span translate="Ответственный"></span>
+                                    </a>
+                                    
+                                    <a ngbDropdownItem href="javascript:void(0);"
+                                        *ngIf="sessioninfo.bp_process_roles_list && sessioninfo.bp_process_roles_list.task_run_as"
+                                        (click)="appComponent.bpRun('task_run_as',{'id': rowData.id },bindCallBack)"
+                                        class="p-2 m-0  border-dark d-block text-dark"
+                                    >
+                                        <span translate="Войти"></span>
+                                    </a>
+                                    
+                                    <a ngbDropdownItem href="javascript:void(0);"
+                                        *ngIf="(sessioninfo.id == rowData.manager_id||session_roles.admin || session_roles.servicedesk || session_roles.its_in_out_mail_view || session_roles.its_kancel_fil || (sessioninfo.bp_process_roles_list && sessioninfo.bp_process_roles_list.task_set_responsible) )"
+                                        (click)="appComponent.bpRun('task_reassign_manual',{'id': rowData.id },bindCallBack)"
+                                        class="p-2 m-0  border-dark d-block text-dark"
+                                    >
+                                        <span translate="Переназначить"></span>
+                                    </a>
+                                    <a ngbDropdownItem href="javascript:void(0);"
+                                        *ngIf="( session_roles.admin || session_roles.servicedesk || session_roles.its_in_out_mail_view || session_roles.its_kancel_fil || (sessioninfo.bp_process_roles_list && sessioninfo.bp_process_roles_list.task_set_responsible))"
+                                        (click)="appComponent.bpRun('task_delete_manual',{'id': rowData.id },bindCallBack)"
+                                        class="p-2 m-0  border-dark d-block text-dark"
+                                    >
+                                        <span translate="Удалить"></span>
+                                    </a>
+                                    <a ngbDropdownItem href="javascript:void(0);"
+                                        *ngIf="session_roles.admin && rowData.is_closed == 1 || session_roles.servicedesk"
+                                        (click)="appComponent.bpRun('task_restore_manual',{'id': rowData.id },bindCallBack)"
+                                        class="p-2 m-0  border-dark d-block text-dark"
+                                    >
+                                        <span translate="Восстановить шаг"></span>
+                                    </a>
+                                    <!--<button *ngIf="session_roles.its_set_responsible" type="button" class="btn btn-secondary" (click)="appComponent.bpRun('task_set_responsible',{'id': rowData.id },bindCallBack)">Ответственный</button>-->
+                                    <!--<button *ngIf="rowData.version_num == 0 && (session_roles.admin) && rowData.is_closed != 1" type="button" pButton (click)="appComponent.bpRun('task_reassign_manual',{'id': rowData.id },bindCallBack)"><span translate="Переназначить"></span></button>-->
+                                    <!--<button *ngIf="rowData.version_num == 0 && (session_roles.admin) && rowData.is_closed != 1" type="button" pButton (click)="appComponent.bpRun('task_delete_manual',{'id': rowData.id },bindCallBack)"><span translate="Удалить"></span></button>-->
+                                    <!--<button *ngIf="rowData.version_num == 0 && session_roles.admin && rowData.is_closed == 1" type="button" pButton (click)="appComponent.bpRun('task_restore_manual',{'id': rowData.id },bindCallBack)"><span translate="Восстановить шаг"></span></button>-->
+                            
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-treeTable>
+        </div>
+    </div>
+</div>

@@ -27,6 +27,7 @@ SOURCE_VC_IDS = [
     1406969575488094329, # ADil
     1406969301864550430, #Nazgul
     1406969180447707247, # Gulnaz
+    1437671685657464894,
 ]
 
 intents = discord.Intents.default()
