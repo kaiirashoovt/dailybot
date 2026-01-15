@@ -76,7 +76,7 @@ async def on_message(message):
         last = state.get("last_run", "никогда")
         await message.channel.send(f"📊 Последний запуск: **{last}**")
 
-    elif message.content.lower() == "!run_now":
+    elif message.content.lower() == "python bot.py":
         await message.channel.send("⚙️ Принудительный запуск задачи")
         await do_daily_task(force=True)
 
