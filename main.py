@@ -6,8 +6,12 @@ import asyncio
 
 TOKEN = os.environ["DISCORD_TOKEN"]
 
-TARGET_TEXT_CHANNEL_ID = 123456789012345678
+
+TARGET_GUILD_ID = 111111111111111111  # <-- ID сервера
+
+TARGET_TEXT_CHANNEL_ID = 1356206346491400282
 TARGET_VC_ID = 1356206346491400282
+
 
 SOURCE_VC_IDS = [
     1238369263006388245,  #Semey Room
@@ -28,7 +32,7 @@ SOURCE_VC_IDS = [
     1406969301864550430, #Nazgul
     1406969180447707247, # Gulnaz
     1437671685657464894,
-    1460589657132761148
+    1460589657132761148,
 ]
 
 intents = discord.Intents.default()
@@ -75,7 +79,7 @@ async def wait_until_11_almaty():
     tz = pytz.timezone("Asia/Almaty")
     now = datetime.datetime.now(tz)
 
-    target_time = now.replace(hour=11, minute=0, second=0, microsecond=0)
+    target_time = now.replace(hour=9, minute=1, second=0, microsecond=0)
     if now >= target_time:
         print("[~] Уже после 11:00 — начинаем сразу.")
         return
@@ -88,35 +92,38 @@ async def do_daily_task():
     tz = pytz.timezone('Asia/Almaty')
     now = datetime.datetime.now(tz)
     print(f"[~] Выполнение задачи в {now.strftime('%Y-%m-%d %H:%M')} по Алматы")
+    
+    guild = client.get_guild(TARGET_GUILD_ID)
+    if not guild:
+        print(f"[!] Бот не видит гильдию: {TARGET_GUILD_ID}")
+        return
+        
+    target_channel = guild.get_channel(TARGET_VC_ID)
+    text_channel = guild.get_channel(TARGET_TEXT_CHANNEL_ID)
 
-    for guild in client.guilds:
-        target_channel = guild.get_channel(TARGET_VC_ID)
-        text_channel = guild.get_channel(TARGET_TEXT_CHANNEL_ID)
+    if not target_channel:
+        print(f"[!] Голосовой канал не найден: {TARGET_VC_ID}")
 
-        if not target_channel:
-            print(f"[!] Голосовой канал не найден: {TARGET_VC_ID}")
+    if text_channel:
+        try:
+            await text_channel.send("🌞 Доброе утро, коллеги! Желаю вам продуктивного дня! 💪")
+            print(f"[✔] Сообщение отправлено в {text_channel.name}")
+        except Exception as e:
+            print(f"[✘] Не удалось отправить сообщение: {e}")
+
+    for voice_channel in guild.voice_channels:
+        if voice_channel.id not in SOURCE_VC_IDS:
             continue
-
-        if text_channel:
-            try:
-                await text_channel.send("🌞 Доброе утро, коллеги! Желаю вам продуктивного дня! 💪")
-                print(f"[✔] Сообщение отправлено в {text_channel.name}")
-            except Exception as e:
-                print(f"[✘] Не удалось отправить сообщение: {e}")
-
-        for voice_channel in guild.voice_channels:
-            if voice_channel.id not in SOURCE_VC_IDS:
-                continue
-            for member in voice_channel.members:
-                if member.voice:
-                    try:
-                        user_original_channels[member.id] = voice_channel.id
-                        await member.move_to(target_channel)
-                        print(f"[✔] Перемещён: {member.display_name} из {voice_channel.name}")
-                    except discord.Forbidden:
-                        print(f"[✘] Нет прав: {member.display_name}")
-                    except Exception as e:
-                        print(f"[✘] Ошибка при перемещении: {e}")
+        for member in voice_channel.members:
+            if member.voice:
+                try:
+                    user_original_channels[member.id] = voice_channel.id
+                    await member.move_to(target_channel)
+                    print(f"[✔] Перемещён: {member.display_name} из {voice_channel.name}")
+                except discord.Forbidden:
+                    print(f"[✘] Нет прав: {member.display_name}")
+                except Exception as e:
+                    print(f"[✘] Ошибка при перемещении: {e}")
 
 async def return_users():
     for guild in client.guilds:
