@@ -2,8 +2,9 @@ name: Daily Discord Bot Task
 
 on:
   schedule:
-    - cron: '0 3 * * 1-5'  # Пн–Пт в 09:00 по Алматы
+    - cron: '0 4 * * 1-5'  # Пн–Пт в 04:00 UTC = 09:00 по Алматы (UTC+5)
   workflow_dispatch:
+
 
 
 jobs:
